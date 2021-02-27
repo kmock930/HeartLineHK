@@ -1,13 +1,13 @@
 import {useList} from 'react-firebase-hooks/database';
 import {useAuthState} from 'react-firebase-hooks/auth';
-import {database, auth} from '../firebaseFunc.js';
+import {database, auth, roomAssigned} from '../firebaseFunc.js';
 import {useState, useEffect} from 'react';
 import MsgBoard from './MsgBoard';
 
 const ClientChat = () =>{
 
     const [user] = useAuthState(auth);
-    const [snapshots, loading, error] = useList(database.ref('/roomAssigned/'+user.uid));
+    const [snapshots, loading, error] = useList(database.ref(roomAssigned+'/'+user.uid));
     const [status, setStatus] = useState('inQueue');
 
     useEffect(()=>{
@@ -22,7 +22,8 @@ const ClientChat = () =>{
             {loading && <h4>Loading</h4>}
             {error && <h4>Error</h4>}
             {user && status == 'inQueue' && <h4>In Queue</h4>}
-            {user && status != 'inQueue' && <MsgBoard volun_id={status}/>}
+            {user && status == 'volunLeft' && <h4>Volunteer ended the chat</h4>}
+            {user && (status != 'inQueue' || status != 'volunLeft') && <MsgBoard volunId={status}/>}
         </div>
 
     );

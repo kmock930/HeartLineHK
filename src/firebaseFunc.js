@@ -18,18 +18,20 @@ const database = firebase.database();
 const auth = firebase.auth();
 
 //Database refs
+const clientQueue = '/clientQueue';
 const roomAssigned = '/roomAssigned';
+const currClientId = '/currClientId';
 
 const addClientQueue = async () =>{
     try{
-        let cred = await auth.signInAnonymously();
+        let cred = await LogIn(true);
         console.log("UID:"+cred.user.uid);
         let queueEnt = {
             'status':'inQueue',
             'time':Date.now()
         };
         console.log(queueEnt);
-        await database.ref(roomAssigned+'/'+cred.user.uid).set(queueEnt);
+        await database.ref(clientQueue+'/'+cred.user.uid).set(queueEnt);
     }catch(error){
         console.log(error);
     }
@@ -37,9 +39,24 @@ const addClientQueue = async () =>{
 
 const isInClientQueue = async () =>{
     try{
-        let snapshot = await database.ref(roomAssigned+'/'+auth.currentUser.uid).once('value');
-        if (snapshot.val()) return 1;
-        else return 0;
+        if (auth.currentUser && auth.currentUser.isAnonymous){
+            let snapshot = await database.ref(clientQueue+'/'+auth.currentUser.uid).once('value');
+            if (snapshot.val()) return 1;
+            else return 0;
+        }else throw "ERROR: Not logged in or Not a client!";
+    }catch(error){
+        console.log(error);
+        return -1;
+    }
+}
+
+const isAssignedRoom = async () =>{
+    try{
+        if (auth.currentUser && auth.currentUser.isAnonymous){
+            let snapshot = await database.ref(roomAssigned+'/'+auth.currentUser.uid).once('value');
+            if (snapshot.val() && snapshot.val().status != "volunLeft") return 1;
+            else return 0;
+        }else throw "ERROR: Not logged in or Not a client!";
     }catch(error){
         console.log(error);
         return -1;
@@ -48,10 +65,76 @@ const isInClientQueue = async () =>{
 
 const dequeueClientQueue = async () =>{
     try{
-        await database.ref(roomAssigned+'/'+auth.currentUser.uid).remove();
-        console.log('removed user '+auth.currentUser.uid+' from queue.');
+        if (isInClientQueue()){
+            await database.ref(clientQueue+'/'+auth.currentUser.uid).remove();
+            console.log('removed user '+auth.currentUser.uid+' from queue.');
+        }else throw "ERROR: Not in Client Queue!";
     }catch (error){ 
         console.log(error);
+    }
+}
+
+const addClientToRoom = async (volunId, clientId) =>{
+    try{
+        if (auth.currentUser.uid == volunId && !auth.currentUser.isAnonymous){
+            let snapshot = await database.ref(clientQueue+'/'+clientId).once('value');
+            if (snapshot.val()){
+                await database.ref(clientQueue+'/'+clientId).remove();
+                await database.ref(roomAssigned+'/'+clientId).set({
+                    'status':volunId,
+                    'time':Date.now()
+                });
+                await database.ref(currClientId+'/'+volunId).set(clientId);
+                await database.ref('/'+volunId).push().set({
+                    'uid':volunId,
+                    'time':Date.now(),
+                    'msg':"Volunteer has joined the chat."
+                });
+                return 1;
+            }else throw "ERROR: Not in Client Queue!";
+        }else throw "ERROR: Current UID is not the same as the given Volunteer ID!";
+    }catch(error){
+        console.log(error);
+        return -1;
+    }
+}
+
+const removeClientFromRoom = async(clientId) =>{
+    try{
+        if (auth.currentUser.uid == clientId && auth.currentUser.isAnonymous){
+            if (isAssignedRoom()){
+                let snapshot = await database.ref(roomAssigned+'/'+clientId).once('value');
+                if (snapshot.val().status != 'volunLeft') await database.ref(currClientId+'/'+snapshot.val().status).set('clientLeft');
+                await database.ref(roomAssigned+'/'+clientId).remove();
+                return 1;
+            }else throw "ERROR: No assigned room!";
+        }else throw "ERROR: Current UID is not the same as the given Client ID!";
+    }catch(error){
+        console.log(error);
+        return -1;
+    }
+}
+
+const removeChatRoom = async (volunId) =>{
+    try{
+        if (auth.currentUser.uid == volunId && !auth.currentUser.isAnonymous){
+            let snapshot = await database.ref(currClientId+'/'+volunId).once('value');
+            if (snapshot.val() && snapshot.val() != 'clientLeft'){
+                let assignedSnapshot = await database.ref(roomAssigned+'/'+snapshot.val()).once('value');
+                if (assignedSnapshot.val()){
+                    await database.ref(roomAssigned+'/'+snapshot.val()).set({
+                        'status':'volunLeft',
+                        'time':Date.now()
+                    });
+                }
+            }
+            await database.ref(currClientId+'/'+volunId).remove();
+            await database.ref('/'+volunId).remove();
+            return 1;
+        }else throw "ERROR: Current UID is not the same as the given Volunteer ID!"
+    }catch(error){
+        console.log(error);
+        return -1;
     }
 }
 
@@ -63,7 +146,6 @@ const sendMessage = async (msgObj) =>{
                 let userRoom = await database.ref(roomAssigned+'/'+auth.currentUser.uid).once('value');
                 if (userRoom) volunId = userRoom.val().status;
             }else volunId = auth.currentUser.uid;
-            console.log('volunId: '+volunId);
             if (volunId && msgObj.uid && msgObj.time && msgObj.msg && msgObj.uid == auth.currentUser.uid && msgObj.time<=Date.now()) database.ref('/'+volunId).push().set(msgObj);
             else console.log('invalid msgObj or invalid volunId');
         }else console.log('msgObj is null');
@@ -72,9 +154,12 @@ const sendMessage = async (msgObj) =>{
     }
 }
 
-const LogIn = async (email, password) =>{
+const LogIn = async (anonymous=false, email=null, password=null) =>{
     try{
-        var cred = await auth.signInWithEmailAndPassword(email, password);
+        let cred = null;
+        await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+        if (!anonymous) cred = await auth.signInWithEmailAndPassword(email, password);
+        else cred = await auth.signInAnonymously();
         return cred;
     }catch(error){
         console.log(error);
@@ -93,7 +178,14 @@ const LogOut = async () =>{
     }
 };
 
+const getCurrentUser = () =>{
+    return auth.currentUser;
+}
 
-export {auth, database, roomAssigned, LogIn, LogOut, addClientQueue, sendMessage};
+const setClientId = (clientId) =>{
+
+}
+
+export {auth, database, roomAssigned, clientQueue, currClientId, getCurrentUser, LogIn, LogOut, addClientQueue, addClientToRoom, removeChatRoom, removeClientFromRoom, isAssignedRoom, sendMessage};
 
 

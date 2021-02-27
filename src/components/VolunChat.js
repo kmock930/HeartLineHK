@@ -1,61 +1,59 @@
-import {database, auth, roomAssigned} from '../firebaseFunc.js';
-import {useList} from 'react-firebase-hooks/database';
+import {database, clientQueue, currClientId, addClientToRoom, getCurrentUser} from '../firebaseFunc.js';
+import {useList, useObject} from 'react-firebase-hooks/database';
 import {useAuthState} from 'react-firebase-hooks/auth';
 import {useEffect, useState} from 'react';
 import MsgBoard from './MsgBoard';
 
 const VolunChat = () =>{
 
-    const [snapshots, loading, error] = useList(database.ref(roomAssigned));
-    const [user] = useAuthState(auth);
+    const [snapshots, loading, error] = useList(database.ref(clientQueue));
+    const [value] = useObject(database.ref(currClientId+'/'+getCurrentUser().uid));
     const [queueCount, setQueueCount] = useState(0);
     const [nextClient, setNextClient] = useState({});
     const [accepted , setAcceptedState] = useState(false);
 
     useEffect(() =>{
+        if (value && value.val() != null) setAcceptedState(false);
         if (snapshots){
             let tmpCount=0;
             let tmpClient = {
                 'time':0,
-                'client_id':null
+                'clientId':null
             };
             snapshots.forEach(v =>{
                 if (tmpClient.time == 0 || (v.val().time >0 && v.val().time < tmpClient.time)){
                     tmpClient.time = v.val().time;
-                    tmpClient.client_id = v.key;
+                    tmpClient.clientId = v.key;
                 }
                 tmpCount += 1;
             });
             setQueueCount(tmpCount);
             setNextClient(tmpClient);
         }
-    }, [snapshots]);
+    }, [snapshots, value]);
 
-    const acceptClient = () =>{
-        database.ref(roomAssigned+'/'+nextClient.client_id).set({
-            'status':user.uid,
-            'time':-1
-        });
-        database.ref('/'+user.uid).push().set({
-            'uid':user.uid,
-            'time':Date.now(),
-            'msg':"Volunteer has joined the chat."
-        });
-        setAcceptedState(true);
+    const acceptClient = async () =>{
+        let user = getCurrentUser();
+        if (user){
+            let ret = await addClientToRoom(user.uid, nextClient.clientId);
+            if (ret == 1) setAcceptedState(true);
+            else document.getElementById('ErrMsg').innerHTML = "Error occurs when trying to start chat with this client!";
+        }else console.error("ERROR: Cannot accept client chat if not logged in!");
     }
 
     return (
         <div>
-            <p>Queue Count: {queueCount}</p>
+            {!accepted && <p>Queue Count: {queueCount}</p>}
             {loading && <h4>Loading</h4>}
             {error && <h4>Error</h4> && console.log(error)}
             {!accepted && queueCount>0 && nextClient && 
             <div>
-                <h4>Next Client is {nextClient.client_id}</h4>
+                <h4>Next Client is {nextClient.clientId}</h4>
                 <button className="btn wave-effect waves-light" onClick={acceptClient}>Start Chat</button>
+                <div id="ErrMsg"></div>
             </div>    
             }
-            {accepted && <MsgBoard volun_id={user.uid}/>}
+            {accepted && <MsgBoard volunId={getCurrentUser().uid}/>}
         </div>
     );
 }

@@ -33,21 +33,20 @@ const ChatModal = () =>{
     }
 
     return (
-        <div id="modalChat" className="modal">
+        <div id="modalChat" className="modal modal-fixed-footer overflow-hidden">
             <div className="modal-content">
                 {user?(user.isAnonymous?<ClientChat/>:<VolunChat/>):<LoadBar/>}
             </div>
-            <div className="modal-footer">
-                <div className="row">
-                    <form onSubmit={submitMessage}>
-                        <div className="input-field col s8">
-                            <input placeholder="Input message" id="msgText" type="text" value={msg} onChange={changeMessage}/>
-                        </div>
-                        <button className="btn waves-effect waves-light col s2" type="submit" name="submitMsg">Send
-                            <i className="material-icons right">send</i>
-                        </button>
-                    </form>
-                </div>                
+            <div className="modal-footer row">
+                <form onSubmit={submitMessage}>
+                    <div className="input-field col s8">
+                        <i className="material-icons prefix">message</i>
+                        <input placeholder="Input message" id="msgText" type="text" value={msg} onChange={changeMessage}/>
+                    </div>
+                    <button className="btn waves-effect waves-light col s2" type="submit" name="submitMsg">Send
+                        <i className="material-icons right">send</i>
+                    </button>
+                </form>             
             </div>
         </div>
     );

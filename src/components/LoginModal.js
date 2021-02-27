@@ -13,7 +13,7 @@ const LoginModal = () =>{
         if (email != "" && password != ""){
             console.log(email+" "+password);
             event.target.reset();
-            var ret = await LogIn(email, password);
+            var ret = await LogIn(false, email, password);
             if (ret.user){
                 setLoginError('');
                 window.M.Modal.getInstance(document.getElementById('modalLogin')).close();
