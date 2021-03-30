@@ -16,6 +16,8 @@ code {
   overflow:hidden;
 }
 
+
+/* Chat container and message bubble CSS */
 .chat-container{
   height:80%;
   overflow:auto;
@@ -64,4 +66,132 @@ code {
 .msg-main-text.opposite-msg{
   background-color:#0d47a1;
   border-radius: 20px 20px 20px 0px;
+}
+
+/* Chat text input CSS */
+.message-input{
+	border-style:hidden;
+  border-radius:20px;
+  padding:10px;
+  outline:none;
+  height:30px;
+  position:relative;
+  top:15px;
+}
+
+.message-input::placeholder{
+  color:white;
+}
+
+.message-icon{
+  position:relative;
+  top:10px;
+}
+
+.message-btn{
+  border-style: hidden;
+  position:relative;
+  top:15px;
+}
+
+/* Emoji Picker CSS */
+.opened.emoji-picker-container{
+  display:block;
+}
+
+.emoji-picker-container{
+  display:none;
+  background-color:white;
+  position:absolute;
+  left:50px;
+  bottom:50px;
+  margin:auto;
+  border-radius:10px;
+  border-style:hidden;
+  width:400px;
+  height:500px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+.group-container{
+  position:relative;
+  overflow-x:auto;
+  top:0;
+  height:10%;
+  margin-bottom:0;
+  border-bottom: 2px solid lightgrey;
+}
+
+.group-container a{
+  background-color:white;
+  border-style:none;
+  text-decoration:none;
+  text-align: center;
+  outline:none;
+  font-size:20px;
+  position:relative;
+  top:10px;
+  margin-left:1%;
+  float:left;
+  width:10%;
+}
+
+.group-container a.group-selected{
+  border-bottom:2px solid grey;
+}
+
+.emoji-container{
+  color:black;
+  background-color:white;
+  position:relative;
+  width:100%;
+  height:80%;
+  top:0;
+}
+
+.emoji-container p{
+  color:black;
+  font-size:20px;
+  text-align:left;
+  margin-top:2%;
+  margin-left:5%;
+  margin-bottom:2%;
+  font-weight:bold;
+}
+
+.group-emojis{
+  position:relative;
+  top:0;
+  width:auto;
+  height:90%;
+  overflow-y:auto;
+  display:grid;
+  grid-template-columns: auto auto auto auto auto auto;
+}
+
+.group-emojis a{
+  font-size:30px;
+}
+
+/*Rating Modal Stars CSS*/
+.star-container{
+  width:200px;
+  height:50px;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding-top:15px;
+}
+
+.star-container .star-radio{
+  display:none;
+}
+
+.star-container .star-radio.selected + label i{
+    color:yellow;
+}
+
+.star-container label i{
+  font-size:35px;
+  color:grey;
 }

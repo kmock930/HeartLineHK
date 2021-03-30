@@ -12,6 +12,7 @@ const MsgBoard = (props) =>{
         let datetime = new Date(millisec);
         let hours = datetime.getHours();
         let mins = datetime.getMinutes();
+        let secs = datetime.getSeconds();
         return `${hours}:${mins}`;
     };
 

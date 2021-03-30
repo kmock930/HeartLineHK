@@ -1,6 +1,5 @@
 import {database, clientQueue, currClientId, addClientToRoom, getCurrentUser} from '../firebaseFunc.js';
 import {useList, useObject} from 'react-firebase-hooks/database';
-import {useAuthState} from 'react-firebase-hooks/auth';
 import {useEffect, useState} from 'react';
 import MsgBoard from './MsgBoard';
 
@@ -10,10 +9,14 @@ const VolunChat = () =>{
     const [value] = useObject(database.ref(currClientId+'/'+getCurrentUser().uid));
     const [queueCount, setQueueCount] = useState(0);
     const [nextClient, setNextClient] = useState({});
+    const [acceptedClientId, setAcceptedClientId] = useState(null);
     const [accepted , setAcceptedState] = useState(false);
 
     useEffect(() =>{
-        if (value && value.val() != null) setAcceptedState(false);
+        if (value && value.val() != acceptedClientId){
+            setAcceptedClientId(value.val());
+            setAcceptedState(false);
+        }
         if (snapshots){
             let tmpCount=0;
             let tmpClient = {
@@ -36,7 +39,10 @@ const VolunChat = () =>{
         let user = getCurrentUser();
         if (user){
             let ret = await addClientToRoom(user.uid, nextClient.clientId);
-            if (ret == 1) setAcceptedState(true);
+            if (ret == 1){
+                setAcceptedClientId(nextClient.clientId);
+                setAcceptedState(true);
+            }
             else document.getElementById('ErrMsg').innerHTML = "Error occurs when trying to start chat with this client!";
         }else console.error("ERROR: Cannot accept client chat if not logged in!");
     }
@@ -46,6 +52,7 @@ const VolunChat = () =>{
             {!accepted && <p>Queue Count: {queueCount}</p>}
             {loading && <h4>Loading</h4>}
             {error && <h4>Error</h4> && console.log(error)}
+            {acceptedClientId == 'clientLeft' && <p>Last Client has ended the chat</p>}
             {!accepted && queueCount>0 && nextClient && 
             <div>
                 <h4>Next Client is {nextClient.clientId}</h4>

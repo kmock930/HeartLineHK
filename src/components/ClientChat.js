@@ -9,10 +9,14 @@ const ClientChat = () =>{
     const [user] = useAuthState(auth);
     const [snapshots, loading, error] = useList(database.ref(roomAssigned+'/'+user.uid));
     const [status, setStatus] = useState('inQueue');
+    const [lastVolunId, setLastVolunId] = useState(null);
 
     useEffect(()=>{
         if (snapshots) snapshots.forEach(v => {
-            if (v.key == 'status') setStatus(v.val());
+            if (v.key == 'status'){
+                if (v.val() != 'volunLeft' && v.val() != 'inQueue') setLastVolunId(v.val());
+                setStatus(v.val());
+            }
         });
     }, [snapshots]);
 
@@ -22,7 +26,7 @@ const ClientChat = () =>{
             {loading && <h4>Loading</h4>}
             {error && <h4>Error</h4>}
             {user && status == 'inQueue' && <h4>In Queue</h4>}
-            {user && status == 'volunLeft' && <h4>Volunteer ended the chat</h4>}
+            {user && status == 'volunLeft' && <h4>Volunteer has ended the chat</h4>}
             {user && (status != 'inQueue' || status != 'volunLeft') && <MsgBoard volunId={status}/>}
         </div>
 
